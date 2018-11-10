@@ -1,7 +1,8 @@
 import random, pygame, time, numpy, math
+
 # Size of each axis of the board
 BOARD_SIZE = 20
-WINDOW_SIZE = (501, 501 + 20)
+WINDOW_SIZE = (1001, 1001 + 20)
 STARTING_LENGTH = 3
 # Moves each snake can make before removed from gene pool
 MAX_MOVES_UNTIL_DEATH = 200
@@ -58,6 +59,7 @@ class Snake:
                 return 0
             else:
                 self.length += 1
+                self.movesSinceLastFood = 0
                 self.addFood()
                 return 0
         else:
@@ -73,6 +75,7 @@ class Snake:
                 return 0
             else:
                 self.length += 1
+                self.movesSinceLastFood = 0
                 self.addFood()
                 return 0
     def die(self):
@@ -85,14 +88,11 @@ class Snake:
         return [sigmoid(f), sigmoid(r), sigmoid(l)]
 
     def fitness(self):
-        if self.movesSinceLastFood > 0:
-            return (self.length - STARTING_LENGTH) * 20 + 5/self.movesSinceLastFood
-        else:
-            return (self.length - STARTING_LENGTH) * 20 + 5
+        return (self.length - STARTING_LENGTH) * 20 + self.movesSinceLastFood/20
     def breed(self, snake):
         cutLoc = [random.randint(1,len(self.weightsList) - 2)]
         #get cut locations
-        for cutnum in range(0, random.randint(3, len(self.weightsList) - 3)):
+        for cutnum in range(0, random.randint(6, len(self.weightsList) - 3)):
             newCutLoc = random.randint(1,len(self.weightsList) - 2)
             while newCutLoc in cutLoc:
                 newCutLoc = random.randint(1,len(self.weightsList) - 2)
@@ -109,9 +109,9 @@ class Snake:
                 newWeights += snake.weightsList[lastLoc:cutLoc[i]]
             lastLoc = cutLoc[i]
         #mutate
-        for i in range(0, random.randint(0, int(round(10 * sigmoid(-self.fitness()/20))))):
+        for i in range(0, random.randint(0, int(round(12 * sigmoid(-self.fitness()/40))))):
             newPlace = random.randint(0, len(newWeights) - 1)
-            if newPlace > len(self.weightsList) - 3:
+            if newPlace > len(self.weightsList) - 4:
                 newWeights[newPlace] = random.randint(0,255)
             else:
                 newWeights[newPlace] = numpy.random.randn()
@@ -121,7 +121,6 @@ class Snake:
         return newWeights
 
     def play(self):
-        done = False
         foodDist = math.sqrt((self.foodPos[0] - self.spacesTaken[0][0])**2 + (self.foodPos[1] - self.spacesTaken[0][1])**2)
         foodAngle = math.degrees(math.atan2((self.foodPos[0] - self.spacesTaken[0][0]), (self.foodPos[1] - self.spacesTaken[0][1])))
         if (self.lastDirection == UP):
@@ -227,106 +226,9 @@ class Snake:
                 self.goInDirection(DOWN)
             elif self.lastDirection == DOWN:
                 self.goInDirection(RIGHT)
-        for event in pygame.event.get():    # whenever pygame recognizes an event (IE: mouse movement, clicking on the window x
-            if event.type == pygame.QUIT:   # if user clicked the red box to close the window
-                done = True
-        screen.fill(WHITE)
-        textSurface = myfont.render("Score: " + str(s.length - STARTING_LENGTH), False, BLACK)
-        screen.blit(textSurface,(5,0))
-        for row in range(0, BOARD_SIZE):
-            for col in range(0, BOARD_SIZE):
-                if [col,row] in self.spacesTaken:
-                    pygame.draw.rect(screen, (self.weightsList[15], self.weightsList[16], self.weightsList[17]), [(1 + SQUARE_SIZE) * col + 1, 20 + (1 + SQUARE_SIZE) * row + 1, SQUARE_SIZE, SQUARE_SIZE])
-                else:
-                    pygame.draw.rect(screen, BLACK, [(1 + SQUARE_SIZE) * col + 1, 20 + (1 + SQUARE_SIZE) * row + 1, SQUARE_SIZE, SQUARE_SIZE])
-                if [col, row] == self.foodPos:
-                    #TODO fix drawing this on the wrong area
-                    pygame.draw.circle(screen, RED, [int((1 + SQUARE_SIZE) * col + 1 + SQUARE_SIZE/2), int(20 + (1 + SQUARE_SIZE) * row + 1 + SQUARE_SIZE/2)], int(SQUARE_SIZE // 2))
-        pygame.display.flip()
-        time.sleep(0.5)
-        if not self.dead and not done:
-            self.play()
-        else:
-            print(self.fitness())
-
-
-
-
-"""
-weightsList = [f1, f2, f3,f4, fb, l1, l2, l3,l4, lb, r1, r2, r3,r4, rb, c1, c2, c3]
-"""
-weights = []
-for i in range(0,18):
-    if i <= 14:
-        weights.append(numpy.random.randn())
-    else:
-        weights.append(random.randint(0,255))
-print("Original Snake: " + str(weights))
-s = Snake(STARTING_LENGTH, weights)
-
-
-
-
-pygame.init()
-screen = pygame.display.set_mode(WINDOW_SIZE)
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-GREEN = (0, 255, 0)
-RED = (255, 0, 0)
-done = False
-pygame.font.init() # you have to call this at the start,
-                   # if you want to use this module.
-myfont = pygame.font.SysFont('Comic Sans MS', 30)
-start = False
-s.play()
-"""
-while not done:
-    time.sleep(0.1)
-    moved = False
-    #TODO fix events being queued instead of executing last movement to frame
-    for event in pygame.event.get():    # whenever pygame recognizes an event (IE: mouse movement, clicking on the window x
-        if event.type == pygame.QUIT:   # if user clicked the red box to close the window
-            done = True
-
-        elif event.type == pygame.KEYDOWN and not moved:
-            start = True
-            if event.key == pygame.K_LEFT:
-                if s.goInDirection(LEFT) == 1:
-                    done = True
-                moved = True
-                pygame.event.clear()
-            elif event.key == pygame.K_UP:
-                if s.goInDirection(DOWN) == 1:
-                    done = True
-                pygame.event.clear()
-                moved = True
-            elif event.key == pygame.K_DOWN:
-                if s.goInDirection(UP) == 1:
-                    done = True
-                pygame.event.clear()
-                moved = True
-            elif event.key == pygame.K_RIGHT:
-                if s.goInDirection(RIGHT) == 1:
-                    done = True
-                pygame.event.clear()
-                moved = True
-
-    if not moved and start:
-        if s.goInDirection(s.lastDirection) == 1:
-            done = True
-
-
-    screen.fill(WHITE)
-    textSurface = myfont.render("Score: " + str(s.length - STARTING_LENGTH), False, BLACK)
-    screen.blit(textSurface,(5,0))
-    for row in range(0, BOARD_SIZE):
-        for col in range(0, BOARD_SIZE):
-            if [col,row] in s.spacesTaken:
-                pygame.draw.rect(screen, GREEN, [(1 + SQUARE_SIZE) * col + 1, 20 + (1 + SQUARE_SIZE) * row + 1, SQUARE_SIZE, SQUARE_SIZE])
-            else:
-                pygame.draw.rect(screen, BLACK, [(1 + SQUARE_SIZE) * col + 1, 20 + (1 + SQUARE_SIZE) * row + 1, SQUARE_SIZE, SQUARE_SIZE])
-            if [col, row] == s.foodPos:
-                #TODO fix drawing this on the wrong area
-                pygame.draw.circle(screen, RED, [int((1 + SQUARE_SIZE) * col + 1 + SQUARE_SIZE/2), int(20 + (1 + SQUARE_SIZE) * row + 1 + SQUARE_SIZE/2)], int(SQUARE_SIZE // 2))
-    pygame.display.flip()
-    """
+        #if not self.dead:
+            #self.play()
+        #else:
+        if self.movesSinceLastFood == MAX_MOVES_UNTIL_DEATH:
+            self.die()
+        return self.fitness()
