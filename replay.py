@@ -23,7 +23,7 @@ myfont = pygame.font.SysFont('Comic Sans MS', 30)
 
 
 #try:
-if len(sys.argv) > 0:
+if len(sys.argv) > 1:
     weights = [float(x) for x in "".join(sys.argv[1:]).split(",")]
     for i in range(15,18):
         weights[i] = int(weights[i])
@@ -50,6 +50,8 @@ if len(sys.argv) > 0:
                 if [col, row] == s.foodPos:
                     pygame.draw.circle(screen, RED, [int((1 + SQUARE_SIZE) * col + 1 + SQUARE_SIZE/2), int(20 + (1 + SQUARE_SIZE) * row + 1 + SQUARE_SIZE/2)], int(SQUARE_SIZE // 2))
         if s.dead:
+            if s.length - STARTING_LENGTH > 0:
+                print("Got score of " + str(s.length - STARTING_LENGTH))
             s = Snake(STARTING_LENGTH, weights)
         time.sleep(0.05)
         pygame.display.flip()

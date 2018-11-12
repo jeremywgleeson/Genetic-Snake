@@ -1,12 +1,12 @@
 from snake import Snake, sigmoid
-import random, pygame, time, numpy, math
+import random, pygame, time, numpy, math, sys, json
 
 # Size of each axis of the board
 BOARD_SIZE = 20
 WINDOW_SIZE = (1001, 1001 + 20)
 STARTING_LENGTH = 3
 # Moves each snake can make before removed from gene pool
-MAX_MOVES_UNTIL_DEATH = 200
+MAX_MOVES_UNTIL_DEATH = 400
 SQUARE_SIZE = (WINDOW_SIZE[0] - BOARD_SIZE - 1) / BOARD_SIZE
 # Direction tuples for moving
 UP, DOWN, LEFT, RIGHT = [0,1], [0,-1], [-1,0], [1,0]
@@ -17,14 +17,23 @@ weightsList = [f1, f2, f3,f4, fb, l1, l2, l3,l4, lb, r1, r2, r3,r4, rb, c1, c2, 
 output = open("output.txt", "a")
 generation = 0
 snakeList = []
-for i in range(0,40):
-    weights = []
-    for i in range(0,18):
-        if i <= 14:
-            weights.append(numpy.random.randn())
-        else:
-            weights.append(random.randint(0,255))
-    snakeList.append(Snake(STARTING_LENGTH, weights))
+if len(sys.argv) > 1:
+    with open(sys.argv[1], "r") as file:
+        lastline = (list(file)[-1])
+    lists = json.loads(lastline)
+    print(lists)
+    for i in range(0, len(lists)):
+        snakeList.append(Snake(STARTING_LENGTH, lists[i]))
+
+else:
+    for i in range(0,40):
+        weights = []
+        for i in range(0,18):
+            if i <= 14:
+                weights.append(numpy.random.randn())
+            else:
+                weights.append(random.randint(0,255))
+        snakeList.append(Snake(STARTING_LENGTH, weights))
 
 
 
@@ -40,7 +49,7 @@ pygame.font.init() # you have to call this at the start,
                    # if you want to use this module.
 myfont = pygame.font.SysFont('Comic Sans MS', 30)
 start = False
-highScore = 0
+highScore = 1
 
 while not done:
 
@@ -55,8 +64,8 @@ while not done:
         for i in range(0,len(snakeList)):
             if snakeList[i].fitness() > bestFitness[0]:
                 bestFitness = [snakeList[i].fitness(), i]
-            if snakeList[i].length - STARTING_LENGTH > highScore:
-                output.write("Score: " + str(snakeList[i].length - STARTING_LENGTH) + "\n" + str(snakeList[i].weightsList) + "\n")
+            if snakeList[i].length - STARTING_LENGTH >= highScore:
+                output.write(str(snakeList[i].length - STARTING_LENGTH) + ":" + str(snakeList[i].weightsList) + "\n")
                 print("New high score: " + str(snakeList[i].length - STARTING_LENGTH))
                 highScore = snakeList[i].length - STARTING_LENGTH
         newSnakeList = [Snake(STARTING_LENGTH, snakeList[bestFitness[1]].weightsList)]
@@ -64,12 +73,25 @@ while not done:
             if i != bestFitness[1]:
                 newSnakeList.append(Snake(STARTING_LENGTH, snakeList[bestFitness[1]].breed(snakeList[i])))
         snakeList = newSnakeList
+        """
+        for i in range(0,2):
+            weights = []
+            for i in range(0,18):
+                if i <= 14:
+                    weights.append(numpy.random.randn())
+                else:
+                    weights.append(random.randint(0,255))
+            snakeList.append(Snake(STARTING_LENGTH, weights))
+        """
 
 
     #TODO fix events being queued instead of executing last movement to frame
     for event in pygame.event.get():    # whenever pygame recognizes an event (IE: mouse movement, clicking on the window x
         if event.type == pygame.QUIT:   # if user clicked the red box to close the window
             done = True
+            lastGen = open("lastGen.txt", "a")
+            lastGen.write(str([snake.weightsList for snake in snakeList]) + "\n")
+            lastGen.close()
             output.close()
 
     """

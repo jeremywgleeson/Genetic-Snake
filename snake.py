@@ -5,7 +5,7 @@ BOARD_SIZE = 20
 WINDOW_SIZE = (1001, 1001 + 20)
 STARTING_LENGTH = 3
 # Moves each snake can make before removed from gene pool
-MAX_MOVES_UNTIL_DEATH = 200
+MAX_MOVES_UNTIL_DEATH = 400
 SQUARE_SIZE = (WINDOW_SIZE[0] - BOARD_SIZE - 1) / BOARD_SIZE
 # Direction tuples for moving
 UP, DOWN, LEFT, RIGHT = [0,1], [0,-1], [-1,0], [1,0]
@@ -109,7 +109,7 @@ class Snake:
                 newWeights += snake.weightsList[lastLoc:cutLoc[i]]
             lastLoc = cutLoc[i]
         #mutate
-        for i in range(0, random.randint(0, int(round(12 * sigmoid(-self.fitness()/40))))):
+        for i in range(0, random.randint(0, int(round(3 * sigmoid(-self.fitness()/40))))):
             newPlace = random.randint(0, len(newWeights) - 1)
             if newPlace > len(self.weightsList) - 4:
                 newWeights[newPlace] = random.randint(0,255)
@@ -122,11 +122,11 @@ class Snake:
 
     def play(self):
         foodDist = math.sqrt((self.foodPos[0] - self.spacesTaken[0][0])**2 + (self.foodPos[1] - self.spacesTaken[0][1])**2)
-        foodAngle = math.degrees(math.atan2((self.foodPos[0] - self.spacesTaken[0][0]), (self.foodPos[1] - self.spacesTaken[0][1])))
         if (self.lastDirection == UP):
             # up is forward
             # right is right
             # left is left
+            foodAngle = math.atan2((self.foodPos[0] - self.spacesTaken[0][0]), (self.spacesTaken[0][1] - self.foodPos[1]))
             fWallDist = self.spacesTaken[0][1]
             fSelfDist = -200
             for i in range(self.spacesTaken[0][1] - 1, -1, -1):
@@ -148,6 +148,7 @@ class Snake:
             # down is forward
             # left is right
             # right is left
+            foodAngle = math.atan2(self.spacesTaken[0][0] - self.foodPos[0], self.foodPos[1] - self.spacesTaken[0][1])
             fWallDist = BOARD_SIZE -1 - self.spacesTaken[0][1]
             fSelfDist = -200
             for i in range(self.spacesTaken[0][1] - 1, BOARD_SIZE):
@@ -169,6 +170,7 @@ class Snake:
             # left is forward
             # up is right
             # down is left
+            foodAngle = math.atan2(self.spacesTaken[0][1] - self.foodPos[1], self.spacesTaken[0][0] - self.foodPos[0])
             fWallDist = self.spacesTaken[0][0]
             fSelfDist = -200
             for i in range(self.spacesTaken[0][0] - 1, -1, -1):
@@ -189,6 +191,7 @@ class Snake:
             # right is forward
             # down is right
             # up is left
+            foodAngle = math.atan2(self.foodPos[1] - self.spacesTaken[0][1], self.foodPos[0] - self.spacesTaken[0][0])
             fWallDist = BOARD_SIZE - self.spacesTaken[0][0]
             fSelfDist = -200
             for i in range(self.spacesTaken[0][0] + 1, 20):
@@ -204,7 +207,8 @@ class Snake:
             for i in range(self.spacesTaken[0][1] - 1, -1, -1):
                 if [self.spacesTaken[0][0], i] in self.spacesTaken:
                     lSelfDist = self.spacesTaken[0][1] - i - 1
-        movement = self.neuralNet(sigmoid(fWallDist), sigmoid(fSelfDist), sigmoid(rWallDist), sigmoid(rSelfDist), sigmoid(lWallDist), sigmoid(lSelfDist), sigmoid(foodDist), sigmoid(foodAngle))
+        #movement = self.neuralNet(sigmoid(fWallDist), sigmoid(fSelfDist), sigmoid(rWallDist), sigmoid(rSelfDist), sigmoid(lWallDist), sigmoid(lSelfDist), sigmoid(foodDist), sigmoid(foodAngle))
+        movement = self.neuralNet(fWallDist, fSelfDist, rWallDist, rSelfDist, lWallDist, lSelfDist, foodDist, foodAngle)
         # sigmoid(f), sigmoid(r), sigmoid(l)
         if (movement[0] >= movement[1] and movement[0] >= movement[2]):
             self.goInDirection(self.lastDirection)
